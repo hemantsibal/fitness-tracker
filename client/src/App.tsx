@@ -31,11 +31,135 @@ export default function App(){
       <div className='flex gap-2'><select className='border rounded-lg p-2' value={meal} onChange={e=>setMeal(e.target.value)}>{meals.map(m=><option key={m}>{m}</option>)}</select></div>
       <textarea className='border rounded-lg p-3' value={text} onChange={e=>setText(e.target.value)} placeholder='2 bowls khichdi with 1 tsp ghee | 3 rotis and 1 katori dal | 1 plate poha'/>
       <button className='px-4 py-2 rounded-lg bg-slate-900 text-white w-fit' onClick={async()=>{const r=await fetch(`${API}/api/estimate`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({text,mealType:meal,loggedDate:date})}); const d=await r.json(); setEst(d); setFinalCalories(d.estimatedCalories ?? '');}}>Estimate Calories</button>
-      {est && <div className='rounded-xl border p-3 bg-slate-50'><h3 className='font-semibold'>Estimate {est.estimatedCalories ?? '—'} kcal {est.calorieMin ? `(${est.calorieMin}-${est.calorieMax})` : ''}</h3><div className='flex gap-2 mt-1'><span className='px-2 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs'>{est.sourceName}</span><span className='px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs'>{est.confidence}</span></div><p className='text-sm text-slate-500'>{est.explanation}</p><input className='border rounded p-2 mt-2' type='number' placeholder='Enter final calories' value={finalCalories} onChange={e=>setFinalCalories(e.target.value===''?'':Number(e.target.value))}/><button className='ml-2 px-3 py-2 bg-indigo-600 text-white rounded' onClick={async()=>{await fetch(`${API}/api/entries`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({loggedDate:date,mealType:meal,originalText:text,parsedFoodName:est.parsedFoodName,amountText:est.amountText,estimatedCalories:est.estimatedCalories,calorieMin:est.calorieMin,calorieMax:est.calorieMax,finalCalories:Number(finalCalories||0),confidence:est.confidence,sourceName:est.sourceName,sourceUrl:est.sourceUrl,sourcePayload:JSON.stringify(est.rawSourcePayload),notes:''})}); setText(''); setEst(null); setFinalCalories(''); load();}}>Save Entry</button></div>}
+      {est && (
+        <div className="rounded-xl border p-3 bg-slate-50">
+          <h3 className="font-semibold">
+            Estimate {est.estimatedCalories ?? "—"} kcal{" "}
+            {est.calorieMin ? `(${est.calorieMin}-${est.calorieMax})` : ""}
+          </h3>
+
+          <div className="flex gap-2 mt-1">
+            <span className="px-2 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs">
+              {est.sourceName}
+            </span>
+            <span className="px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs">
+              {est.confidence}
+            </span>
+          </div>
+
+          <p className="text-sm text-slate-500">{est.explanation}</p>
+
+          <input
+            className="border rounded p-2 mt-2"
+            type="number"
+            placeholder="Enter final calories"
+            value={finalCalories}
+            onChange={(e) =>
+              setFinalCalories(e.target.value === "" ? "" : Number(e.target.value))
+            }
+          />
+
+          <button
+            className="ml-2 px-3 py-2 bg-indigo-600 text-white rounded"
+            onClick={async () => {
+              await fetch(`${API}/api/entries`, {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({
+                  loggedDate: date,
+                  mealType: meal,
+                  originalText: text,
+                  parsedFoodName: est.parsedFoodName,
+                  amountText: est.amountText,
+                  estimatedCalories: est.estimatedCalories,
+                  calorieMin: est.calorieMin,
+                  calorieMax: est.calorieMax,
+                  finalCalories: Number(finalCalories || 0),
+                  confidence: est.confidence,
+                  sourceName: est.sourceName,
+                  sourceUrl: est.sourceUrl,
+                  sourcePayload: JSON.stringify(est.rawSourcePayload),
+                  notes: "",
+                }),
+              });
+
+              setText("");
+              setEst(null);
+              setFinalCalories("");
+              load();
+            }}
+          >
+            Save Entry
+          </button>
+        </div>
+      )}
     </div>
 
-    <div className='rounded-2xl shadow-sm border bg-white p-4'>
-      <div className='overflow-x-auto'><table className='w-full text-sm min-w-[700px]'><thead><tr><th className='text-left'><button onClick={()=>setSortDir(sortDir==='asc'?'desc':'asc')}>Meal {sortDir==='asc'?'↑':'↓'}</button></th><th className='text-left'>Food</th><th>Final</th><th>Source</th><th/></tr></thead><tbody>{sortedEntries.length===0?<tr><td colSpan={5} className='py-8 text-center text-slate-500'>No meals logged for this day yet. Start with something like “2 bowls khichdi with 1 tsp ghee.”</td></tr>:sortedEntries.map(e=><tr key={e.id} className='border-t'><td><span className='px-2 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-medium'>{e.meal_type}</span></td><td>{e.original_text}</td><td className='text-center'>{e.final_calories}</td><td className='text-center'><span className='px-2 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs'>{e.source_name}</span></td><td className='text-right'><button className='mr-2 text-indigo-600' onClick={()=>setEditing({...e})}>Edit</button><button className='text-red-600' onClick={async()=>{await fetch(`${API}/api/entries/${e.id}`,{method:'DELETE'}); load();}}>Delete</button></td></tr>)}</tbody></table></div>
+    <div className="rounded-2xl shadow-sm border bg-white p-4">
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm min-w-[700px]">
+          <thead>
+            <tr>
+              <th className="text-left">
+                <button onClick={() => setSortDir(sortDir === "asc" ? "desc" : "asc")}>
+                  Meal {sortDir === "asc" ? "↑" : "↓"}
+                </button>
+              </th>
+              <th className="text-left">Food</th>
+              <th>Final</th>
+              <th>Source</th>
+              <th />
+            </tr>
+          </thead>
+
+          <tbody>
+            {sortedEntries.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="py-8 text-center text-slate-500">
+                  No meals logged for this day yet. Start with something like “2 bowls
+                  khichdi with 1 tsp ghee.”
+                </td>
+              </tr>
+            ) : (
+              sortedEntries.map((e) => (
+                <tr key={e.id} className="border-t">
+                  <td>
+                    <span className="px-2 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-medium">
+                      {e.meal_type}
+                    </span>
+                  </td>
+                  <td>{e.original_text}</td>
+                  <td className="text-center">{e.final_calories}</td>
+                  <td className="text-center">
+                    <span className="px-2 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs">
+                      {e.source_name}
+                    </span>
+                  </td>
+                  <td className="text-right">
+                    <button
+                      className="mr-2 text-indigo-600"
+                      onClick={() => setEditing({ ...e })}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className="text-red-600"
+                      onClick={async () => {
+                        await fetch(`${API}/api/entries/${e.id}`, {
+                          method: "DELETE",
+                        });
+                        load();
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
 
     {editing && <div className='fixed inset-0 bg-black/40 grid place-items-center'><div className='bg-white rounded-2xl p-4 w-[500px] max-w-[95vw] grid gap-2'><h3 className='font-semibold text-lg'>Edit Entry</h3><input className='border rounded p-2' value={editing.logged_date} onChange={e=>setEditing({...editing,logged_date:e.target.value})} type='date'/><select className='border rounded p-2' value={editing.meal_type} onChange={e=>setEditing({...editing,meal_type:e.target.value})}>{meals.map(m=><option key={m}>{m}</option>)}</select><input className='border rounded p-2' value={editing.original_text} onChange={e=>setEditing({...editing,original_text:e.target.value})}/><input className='border rounded p-2' type='number' value={editing.estimated_calories ?? ''} onChange={e=>setEditing({...editing,estimated_calories:Number(e.target.value)})}/><input className='border rounded p-2' type='number' value={editing.final_calories} onChange={e=>setEditing({...editing,final_calories:Number(e.target.value)})}/><input className='border rounded p-2' value={editing.source_name || ''} onChange={e=>setEditing({...editing,source_name:e.target.value})}/><textarea className='border rounded p-2' value={editing.notes || ''} onChange={e=>setEditing({...editing,notes:e.target.value})}/><div className='flex justify-end gap-2'><button onClick={()=>setEditing(null)}>Cancel</button><button className='px-4 py-2 rounded bg-indigo-600 text-white' onClick={async()=>{await fetch(`${API}/api/entries/${editing.id}`,{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify({loggedDate:editing.logged_date,mealType:editing.meal_type,originalText:editing.original_text,estimatedCalories:editing.estimated_calories,finalCalories:editing.final_calories,notes:editing.notes,sourceName:editing.source_name})}); setEditing(null); load();}}>Save</button></div></div></div>}
