@@ -2,12 +2,41 @@ import { parseFoodText } from '../utils/portionParser.js';
 import { estimateFromHistory } from './localHistoryEstimator.js';
 import { estimateFromDefaults } from './indianFoodDefaults.js';
 import { estimateViaNutritionix } from './nutritionixClient.js';
+import { estimateViaEdamam } from './edamamClient.js';
+import { estimateViaUsda } from './usdaClient.js';
 
 export async function estimateCalories(text: string) {
   const parsed = parseFoodText(text);
   const amountText = `${parsed.quantity} ${parsed.unit}${parsed.quantity>1?'s':''}`;
-  const h = estimateFromHistory(parsed.foodName, amountText);
-  const base = h || estimateFromDefaults(parsed.foodName, parsed.quantity, parsed.modifiers) || await estimateViaNutritionix(text) || { estimatedCalories: 200, confidence:'low', sourceName:'Fallback estimate', explanation:'Manual correction recommended.' };
+  const base: any =
+    estimateFromHistory(parsed.foodName, amountText) ||
+    estimateFromDefaults(parsed.foodName, parsed.quantity, parsed.modifiers) ||
+    await estimateViaNutritionix(text) ||
+    await estimateViaEdamam(text) ||
+    await estimateViaUsda(text) ||
+    {
+      estimatedCalories: null,
+      confidence:'low',
+      sourceName:'No reliable estimate found',
+      explanation:'Could not estimate calories from local history, Indian defaults, or configured nutrition APIs. Please enter calories manually.'
+    };
+
+  if (base.estimatedCalories == null) {
+    return {
+      input: text,
+      parsedFoodName: parsed.foodName,
+      amountText,
+      estimatedCalories: null,
+      calorieMin: null,
+      calorieMax: null,
+      confidence: base.confidence,
+      sourceName: base.sourceName,
+      sourceUrl: (base as any).sourceUrl || '',
+      explanation: base.explanation || '',
+      rawSourcePayload: (base as any).rawSourcePayload || {}
+    };
+  }
+
   const low = base.confidence === 'low';
   return {
     input:text, parsedFoodName: parsed.foodName, amountText,
