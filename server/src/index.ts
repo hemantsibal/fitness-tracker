@@ -1,0 +1,20 @@
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import { initDb } from './db/database.js';
+import { entriesRouter } from './routes/entries.js';
+import { estimateRouter } from './routes/estimate.js';
+import { settingsRouter } from './routes/settings.js';
+import { exportRouter } from './routes/export.js';
+
+dotenv.config();
+initDb();
+const app = express();
+app.use(cors()); app.use(express.json());
+app.get('/health',(_req,res)=>res.json({ok:true}));
+app.use('/api/entries',entriesRouter);
+app.use('/api/estimate',estimateRouter);
+app.use('/api/settings',settingsRouter);
+app.use('/api/export',exportRouter);
+app.get('/api/history',(req,res)=>{res.json({query:req.query.query||'',matches:[]});});
+app.listen(process.env.PORT || 4000, ()=>console.log('Server running'));
